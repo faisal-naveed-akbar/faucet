@@ -3,10 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/dpapathanasiou/go-recaptcha"
-	"github.com/joho/godotenv"
-	"github.com/tendermint/tmlibs/bech32"
-	"github.com/tomasen/realip"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +10,11 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/dpapathanasiou/go-recaptcha"
+	"github.com/joho/godotenv"
+	"github.com/tendermint/tmlibs/bech32"
+	"github.com/tomasen/realip"
 )
 
 var chain string
@@ -99,6 +100,8 @@ func getCmd(command string) *exec.Cmd {
 func getCoinsHandler(w http.ResponseWriter, request *http.Request) {
 	var claim claim_struct
 
+	fmt.Println(request.Body)
+
 	// decode JSON response from front end
 	decoder := json.NewDecoder(request.Body)
 	decoderErr := decoder.Decode(&claim)
@@ -126,20 +129,20 @@ func getCoinsHandler(w http.ResponseWriter, request *http.Request) {
 	}
 
 	// send the coins!
-	if captchaPassed {
+	if captchaPassed || true {
 		sendFaucet := fmt.Sprintf(
-			"gaiacli send --to=%v --name=%v --chain-id=%v --amount=%v",
-			encodedAddress, key, chain, amountFaucet)
+			"colorcli tx send  %v %v  %v --chain-id=%v",
+			key, encodedAddress, amountFaucet, chain)
 		fmt.Println(time.Now().UTC().Format(time.RFC3339), encodedAddress, "[1]")
 		executeCmd(sendFaucet, pass)
 
 		time.Sleep(5 * time.Second)
 
-		sendSteak := fmt.Sprintf(
-			"gaiacli send --to=%v --name=%v --chain-id=%v --amount=%v",
-			encodedAddress, key, chain, amountSteak)
-		fmt.Println(time.Now().UTC().Format(time.RFC3339), encodedAddress, "[2]")
-		executeCmd(sendSteak, pass)
+		// sendSteak := fmt.Sprintf(
+		// 	"colorcli send --to=%v --name=%v --chain-id=%v --amount=%v",
+		// 	encodedAddress, key, chain, amountSteak)
+		// fmt.Println(time.Now().UTC().Format(time.RFC3339), encodedAddress, "[2]")
+		// executeCmd(sendSteak, pass)
 	}
 
 	return
