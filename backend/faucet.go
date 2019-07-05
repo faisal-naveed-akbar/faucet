@@ -8,13 +8,10 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
-	"strings"
 	"time"
 
 	"github.com/dpapathanasiou/go-recaptcha"
 	"github.com/joho/godotenv"
-	"github.com/tendermint/tmlibs/bech32"
-	"github.com/tomasen/realip"
 )
 
 var chain string
@@ -85,22 +82,21 @@ func goExecute(command string) (cmd *exec.Cmd, pipeIn io.WriteCloser, pipeOut io
 
 func getCmd(command string) *exec.Cmd {
 	// split command into command and args
-	split := strings.Split(command, " ")
 
 	var cmd *exec.Cmd
-	if len(split) == 1 {
-		cmd = exec.Command(split[0])
-	} else {
-		cmd = exec.Command(split[0], split[1:]...)
+
+	cmd = exec.Command("/bin/sh", "shell.sh")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
 	}
+	fmt.Printf("combined out:\n%s\n", string(out))
 
 	return cmd
 }
 
 func getCoinsHandler(w http.ResponseWriter, request *http.Request) {
 	var claim claim_struct
-
-	fmt.Println(request.Body)
 
 	// decode JSON response from front end
 	decoder := json.NewDecoder(request.Body)
@@ -109,41 +105,51 @@ func getCoinsHandler(w http.ResponseWriter, request *http.Request) {
 		panic(decoderErr)
 	}
 
-	// make sure address is bech32
-	readableAddress, decodedAddress, decodeErr := bech32.DecodeAndConvert(claim.Address)
-	if decodeErr != nil {
-		panic(decodeErr)
+	var cmd *exec.Cmd
+	cmd = exec.Command("/bin/sh", "shell.sh", claim.Address)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatalf("cmd.Run() failed with %s\n", err)
 	}
-	// re-encode the address in bech32
-	encodedAddress, encodeErr := bech32.ConvertAndEncode(readableAddress, decodedAddress)
-	if encodeErr != nil {
-		panic(encodeErr)
-	}
-
-	// make sure captcha is valid
-	clientIP := realip.FromRequest(request)
-	captchaResponse := claim.Response
-	captchaPassed, captchaErr := recaptcha.Confirm(clientIP, captchaResponse)
-	if captchaErr != nil {
-		panic(captchaErr)
-	}
-
-	// send the coins!
-	if captchaPassed || true {
-		sendFaucet := fmt.Sprintf(
-			"colorcli tx send  %v %v  %v --chain-id=%v",
-			key, encodedAddress, amountFaucet, chain)
-		fmt.Println(time.Now().UTC().Format(time.RFC3339), encodedAddress, "[1]")
-		executeCmd(sendFaucet, pass)
-
-		time.Sleep(5 * time.Second)
-
-		// sendSteak := fmt.Sprintf(
-		// 	"colorcli send --to=%v --name=%v --chain-id=%v --amount=%v",
-		// 	encodedAddress, key, chain, amountSteak)
-		// fmt.Println(time.Now().UTC().Format(time.RFC3339), encodedAddress, "[2]")
-		// executeCmd(sendSteak, pass)
-	}
+	fmt.Printf("combined out:\n%s\n", string(out))
 
 	return
+
+	// // make sure address is bech32
+	// readableAddress, decodedAddress, decodeErr := bech32.DecodeAndConvert(claim.Address)
+	// if decodeErr != nil {
+	// 	panic(decodeErr)
+	// }
+	// // re-encode the address in bech32
+	// encodedAddress, encodeErr := bech32.ConvertAndEncode(readableAddress, decodedAddress)
+	// if encodeErr != nil {
+	// 	panic(encodeErr)
+	// }
+
+	// // make sure captcha is valid
+	// clientIP := realip.FromRequest(request)
+	// captchaResponse := claim.Response
+	// captchaPassed, captchaErr := recaptcha.Confirm(clientIP, captchaResponse)
+	// if captchaErr != nil {
+	// 	panic(captchaErr)
+	// }
+
+	// // send the coins!
+	// if captchaPassed || true {
+	// 	sendFaucet := fmt.Sprintf(
+	// 		"gaiacli send --to=%v --name=%v --chain-id=%v --amount=%v",
+	// 		encodedAddress, key, chain, amountFaucet)
+	// 	fmt.Println(time.Now().UTC().Format(time.RFC3339), encodedAddress, "[1]")
+	// 	executeCmd(sendFaucet, pass)
+
+	// 	time.Sleep(5 * time.Second)
+
+	// 	sendSteak := fmt.Sprintf(
+	// 		"gaiacli send --to=%v --name=%v --chain-id=%v --amount=%v",
+	// 		encodedAddress, key, chain, amountSteak)
+	// 	fmt.Println(time.Now().UTC().Format(time.RFC3339), encodedAddress, "[2]")
+	// 	executeCmd(sendSteak, pass)
+	// }
+
+	// return
 }

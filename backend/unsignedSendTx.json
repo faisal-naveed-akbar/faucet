@@ -1,0 +1,1 @@
+{"type":"auth/StdTx","value":{"msg":[{"type":"cosmos-sdk/MsgSend","value":{"from_address":"cosmos1wqv8jxzseyvmk93gpa6qxdm9l9cwpj3htkey2z","to_address":"cosmos13jzkskysdemr0yc9hhhp2qnvrp3hfjle6jvz00","amount":[{"denom":"stake","amount":"100"}]}}],"fee":{"amount":[],"gas":"200000"},"signatures":null,"memo":""}}
